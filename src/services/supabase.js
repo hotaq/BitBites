@@ -4,10 +4,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Missing Supabase Environment Variables. Please check .env.local')
+    console.error('❌ MISSING SUPABASE CREDENTIALS!')
+    console.error('supabaseUrl:', supabaseUrl)
+    console.error('supabaseAnonKey:', supabaseAnonKey ? 'EXISTS' : 'MISSING')
+    alert('Deployment Error: Missing Supabase environment variables. Check Vercel settings.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder')
 
 /**
  * Uploads a file to the 'meal-images' bucket.
