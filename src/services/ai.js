@@ -82,7 +82,19 @@ export async function calculateMealScore(beforeImage, afterImage) {
 
         // Clean up markdown code blocks if present to parse JSON
         const jsonStr = responseText.replace(/```json|```/g, '').trim()
-        return JSON.parse(jsonStr)
+        const parsedResult = JSON.parse(jsonStr)
+
+        // ENFORCE INSTANT NOODLES RULE: Divide score by 2
+        if (parsedResult.foodType === 'instant_noodles') {
+            const originalScore = parsedResult.score
+            parsedResult.score = Math.floor(originalScore / 2)
+            // Add a note to the commentary if the AI didn't mention it
+            if (!parsedResult.commentary.toLowerCase().includes('instant')) {
+                parsedResult.commentary += ` 🍜 (Instant noodles = half points!)`
+            }
+        }
+
+        return parsedResult
 
     } catch (error) {
         console.error("Error scoring meal:", error)
