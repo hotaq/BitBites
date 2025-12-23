@@ -2,9 +2,15 @@ import { useState, useEffect } from 'react';
 import MealTracker from './components/MealTracker';
 import MealGallery from './components/MealGallery';
 import Leaderboard from './components/Leaderboard';
+import DebugPage from './DebugPage';
 import { supabase } from './services/supabase';
 
 function App() {
+  // Debug mode - shows environment variables
+  if (window.location.pathname === '/debug') {
+    return <DebugPage />;
+  }
+
   const [session, setSession] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
