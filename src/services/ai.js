@@ -42,18 +42,39 @@ export async function calculateMealScore(beforeImage, afterImage) {
       1. VERIFY: Are these images of the SAME meal? (Check if the food type, plate, and setting match)
          - If they are COMPLETELY DIFFERENT foods (e.g., salmon vs noodles), give a score of 0 and say "Nice try! These aren't the same meal 😏"
       
-      2. If they ARE the same meal, estimate what percentage of the food was consumed.
+      2. IDENTIFY the food type:
+         - Main Course: Rice dishes, pasta (not instant), steak, chicken, fish, curry, stir-fry, etc.
+         - Non-Main Course: Snacks, desserts, drinks, appetizers, fruits, small bites
+         - Instant Noodles: Cup noodles, ramen packets, instant noodles (any brand)
       
-      3. Award a Score from 0 to 100:
+      3. If they ARE the same meal, estimate what percentage of the food was consumed.
+      
+      4. Award a Score from 0 to 100 based on food type:
+      
+         FOR MAIN COURSES:
          - 90-100: Plate is clean or nearly clean (great job!)
          - 70-89: Most of the food is gone
          - 50-69: About half eaten
          - 30-49: Only a few bites taken
          - 0-29: Barely touched
+         
+         FOR NON-MAIN COURSES (Snacks, Desserts, Drinks, Appetizers):
+         - Be more lenient! These are smaller portions and treats.
+         - 80-100: Finished or mostly finished
+         - 60-79: Good portion consumed
+         - 40-59: About half eaten
+         - 20-39: A few bites/sips taken
+         - 0-19: Barely touched
+         
+         FOR INSTANT NOODLES:
+         - Calculate the score normally first, then DIVIDE BY 2
+         - Note: Instant noodles get half credit because they're quick and easy!
       
-      4. Write a witty, romantic, retro-gaming style commentary (max 2 sentences).
+      5. Write a witty, romantic, retro-gaming style commentary (max 2 sentences).
+         - For instant noodles, mention that it's a "quick power-up" or similar gaming reference
+         - For non-main courses, keep it light and playful
       
-      Return JSON format: { "score": NUMBER, "commentary": "STRING" }
+      Return JSON format: { "score": NUMBER, "commentary": "STRING", "foodType": "main_course|non_main_course|instant_noodles" }
     `
 
         const result = await model.generateContent([prompt, beforeData, afterData])
