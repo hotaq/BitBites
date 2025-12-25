@@ -3,6 +3,7 @@ import MealTracker from './components/MealTracker';
 import MealGallery from './components/MealGallery';
 import Leaderboard from './components/Leaderboard';
 import { supabase } from './services/supabase';
+import { isCurrentlyBonusTime, getTimeRemainingInBonus } from './utils/bonusTime';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -12,6 +13,8 @@ function App() {
   const [totalScore, setTotalScore] = useState(0);
   const [view, setView] = useState('track'); // 'track', 'gallery', 'leaderboard'
   const [username, setUsername] = useState('Player 1');
+  const [bonusWindow, setBonusWindow] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -33,6 +36,28 @@ function App() {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Check for bonus time every minute
+  useEffect(() => {
+    const checkBonusTime = () => {
+      const { isBonus, window } = isCurrentlyBonusTime();
+      if (isBonus) {
+        setBonusWindow(window);
+        setTimeRemaining(getTimeRemainingInBonus());
+      } else {
+        setBonusWindow(null);
+        setTimeRemaining(null);
+      }
+    };
+
+    // Check immediately
+    checkBonusTime();
+
+    // Then check every minute
+    const interval = setInterval(checkBonusTime, 60000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchUsername = async (userId, email) => {
@@ -120,8 +145,32 @@ function App() {
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem', position: 'relative' }}>
 
+      {/* Bonus Time Banner */}
+      {bonusWindow && (
+        <div className="bonus-banner" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(135deg, #ffd700, #ff3366)',
+          color: '#0a0a0a',
+          padding: '1rem',
+          textAlign: 'center',
+          fontWeight: 'bold',
+          fontSize: '1.2rem',
+          zIndex: 1000,
+          animation: 'pulse 2s infinite',
+          borderBottom: '4px solid #fff'
+        }}>
+          🎁 {bonusWindow.label.toUpperCase()} ACTIVE! 🎁
+          <span style={{ marginLeft: '1rem', fontSize: '0.9rem' }}>
+            {timeRemaining} minute{timeRemaining !== 1 ? 's' : ''} left!
+          </span>
+        </div>
+      )}
+
       {/* Player Score Badge */}
-      <div className="player-badge">
+      <div className="player-badge" style={{ marginTop: bonusWindow ? '60px' : '0' }}>
         <span className="player-label">{username}</span>
         <span className="player-score">{totalScore}</span>
       </div>

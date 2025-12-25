@@ -60,9 +60,9 @@ export async function calculateMealScore(beforeImage, afterImage) {
          
          FOR NON-MAIN COURSES (Snacks, Desserts, Drinks, Appetizers):
          - SNACKS ARE NOT REAL MEALS!
-         - MAX SCORE: 20 (Do not give high scores for snacks).
-         - 10-20: Finished
-         - 0-9: Not finished
+         - MAX SCORE: 70 (Do not give high scores for snacks).
+         - 10-70: Finished
+         - 0-10: Not finished
          
          FOR INSTANT NOODLES:
          - Calculate the score normally first, then DIVIDE BY 2
@@ -90,6 +90,22 @@ export async function calculateMealScore(beforeImage, afterImage) {
             if (!parsedResult.commentary.toLowerCase().includes('instant')) {
                 parsedResult.commentary += ` 🍜 (Instant noodles = half points!)`
             }
+        }
+
+        // CHECK FOR BONUS TIME and apply multiplier
+        const { isBonus, window } = await import('../utils/bonusTime.js').then(m => m.isCurrentlyBonusTime())
+
+        if (isBonus) {
+            const originalScore = parsedResult.score
+            parsedResult.score = Math.floor(originalScore * 1.5)
+            parsedResult.bonusApplied = true
+            parsedResult.originalScore = originalScore
+            parsedResult.bonusType = window.label
+
+            // Add bonus celebration to commentary
+            parsedResult.commentary += ` 🎁 BONUS TIME! Score boosted from ${originalScore} to ${parsedResult.score}!`
+        } else {
+            parsedResult.bonusApplied = false
         }
 
         return parsedResult

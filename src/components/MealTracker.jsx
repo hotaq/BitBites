@@ -117,10 +117,31 @@ export default function MealTracker({ onMealSaved }) {
                 {step === 'result' && result && (
                     <div className="step-content result-view">
                         <h2>💘 Meal Score</h2>
+
+                        {result.bonusApplied && (
+                            <div className="bonus-badge" style={{
+                                background: 'linear-gradient(135deg, #ffd700, #ff3366)',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '8px',
+                                marginBottom: '1rem',
+                                fontWeight: 'bold',
+                                animation: 'pulse 2s infinite'
+                            }}>
+                                🎁 {result.bonusType} Applied!
+                            </div>
+                        )}
+
                         <div className="score-display">
                             <span className="score-number">{result.score}</span>
                             <span className="score-max">/100</span>
                         </div>
+
+                        {result.bonusApplied && (
+                            <p style={{ fontSize: '0.9rem', color: 'var(--color-primary)', marginTop: '0.5rem' }}>
+                                Base Score: {result.originalScore} × 1.5 = {result.score} 🎉
+                            </p>
+                        )}
+
                         <p className="ai-commentary">"{result.commentary}"</p>
 
                         <button className="pixel-btn" onClick={resetRotation}>
