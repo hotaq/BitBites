@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { compressImageSimple } from '../utils/imageCompression.js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -19,13 +20,23 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
  */
 export async function uploadMealImage(file) {
     try {
-        const fileExt = file.name.split('.').pop();
+        // Compress image before upload to reduce file size by 70-80%
+        const compressedBlob = await compressImageSimple(file, {
+            maxWidth: 1920,
+            maxHeight: 1080,
+            initialQuality: 0.8,
+            targetSize: 1024 * 1024 // 1MB target
+        });
+
+        // Create a File object from the compressed blob
+        const fileExt = 'jpg'; // Compressed images are always JPEG
         const fileName = `${Math.random()}.${fileExt}`;
+        const compressedFile = new File([compressedBlob], fileName, { type: 'image/jpeg' });
         const filePath = `${fileName}`;
 
         const { data, error } = await supabase.storage
             .from('meal-images')
-            .upload(filePath, file);
+            .upload(filePath, compressedFile);
 
         if (error) throw error;
 
