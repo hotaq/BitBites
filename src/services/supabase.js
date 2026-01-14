@@ -75,14 +75,15 @@ export async function saveMeal(mealData) {
 
 /**
  * Fetches the latest meals from the database.
+ * @param {number} limit - Maximum number of meals to fetch (default: 100)
  * @returns {Promise<Array>} Array of meal objects
  */
-export async function fetchMeals() {
+export async function fetchMeals(limit = 100) {
     const { data, error } = await supabase
         .from('meals')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(limit);
 
     if (error) {
         console.error('Error fetching meals:', error);
