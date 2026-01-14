@@ -1,10 +1,10 @@
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import CameraUpload from './CameraUpload';
 import { analyzeMeal, calculateMealScore } from '../services/ai';
 import { uploadMealImage, saveMeal } from '../services/supabase';
 
-export default function MealTracker({ onMealSaved }) {
+function MealTracker({ onMealSaved }) {
     const [step, setStep] = useState('start'); // start, eating, finish, result
     const [beforeImage, setBeforeImage] = useState(null);
     const [afterImage, setAfterImage] = useState(null);
@@ -153,3 +153,5 @@ export default function MealTracker({ onMealSaved }) {
         </div>
     );
 }
+
+export default memo(MealTracker);
