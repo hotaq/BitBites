@@ -1,212 +1,3 @@
-/**
- * Test file for image compression utility
- * This file can be used to manually verify the compression functionality
- *
- * To test in a browser:
- * 1. Import this file in your HTML or use it in browser console
- * 2. Create an HTML file with a file input and call testCompression()
- * 3. Select a 3-5MB image file
- * 4. Check the console for results
- */
-
-import { compressImage } from './imageCompression.js';
-
-/**
- * Test compression with a file input
- * Call this function from browser console after user selects a file
- * @param {File} file - File from file input element
- */
-export async function testCompression(file) {
-    console.log('=== Image Compression Test ===');
-    console.log('Original file:', {
-        name: file.name,
-        type: file.type,
-        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
-        sizeBytes: file.size
-    });
-
-    try {
-        const startTime = performance.now();
-
-        const result = await compressImage(file, {
-            maxWidth: 1920,
-            maxHeight: 1080,
-            initialQuality: 0.8,
-            targetSize: 1024 * 1024 // 1MB target
-        });
-
-        const endTime = performance.now();
-        const duration = (endTime - startTime).toFixed(2);
-
-        console.log('✓ Compression successful!');
-        console.log('Result:', {
-            compressedSize: `${(result.compressedSize / 1024 / 1024).toFixed(2)} MB`,
-            compressedSizeBytes: result.compressedSize,
-            compressionRatio: `${result.compressionRatio.toFixed(2)}%`,
-            quality: result.quality,
-            duration: `${duration}ms`
-        });
-
-        // Verify requirements
-        if (result.compressedSize <= 1024 * 1024) {
-            console.log('✓ PASS: Output file is under 1MB');
-        } else {
-            console.log('✗ FAIL: Output file exceeds 1MB');
-        }
-
-        if (result.compressionRatio >= 70) {
-            console.log('✓ PASS: Compression ratio is 70% or higher');
-        } else {
-            console.log('✗ FAIL: Compression ratio is below 70%');
-        }
-
-        // Return blob for visual inspection
-        console.log('Compressed blob:', result.blob);
-
-        return result;
-    } catch (error) {
-        console.error('✗ Compression failed:', error);
-        throw error;
-    }
-}
-
-/**
- * Test that the compressImage function exists and is exported
- */
-export function testFunctionExists() {
-    console.log('=== Function Existence Test ===');
-    console.log('compressImage function exists:', typeof compressImage === 'function');
-    console.log('compressImage is exported:', typeof compressImage !== 'undefined');
-
-    return typeof compressImage === 'function';
-}
-
-/**
- * Comprehensive test suite for various image sizes and formats
- * Tests small, medium, large images in JPEG, PNG, and HEIC formats
- */
-export async function runComprehensiveTests(files) {
-    const testResults = [];
-
-    console.log('=== COMPREHENSIVE IMAGE COMPRESSION TEST SUITE ===\n');
-
-    for (const file of files) {
-        const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-        const fileType = file.type || 'unknown';
-        const category = categorizeImage(file);
-
-        console.log(`\n--- Testing: ${file.name} (${fileSizeMB} MB, ${fileType}) ---`);
-        console.log(`Category: ${category}`);
-
-        try {
-            const result = await compressImage(file);
-            const testResult = {
-                file: file.name,
-                originalSize: file.size,
-                compressedSize: result.compressedSize,
-                compressionRatio: result.compressionRatio,
-                category,
-                format: fileType,
-                quality: result.quality,
-                passed: evaluateTestResult(file, result, category)
-            };
-
-            testResults.push(testResult);
-
-            console.log('Results:');
-            console.log(`  Original: ${fileSizeMB} MB`);
-            console.log(`  Compressed: ${(result.compressedSize / 1024 / 1024).toFixed(2)} MB`);
-            console.log(`  Compression: ${result.compressionRatio.toFixed(2)}%`);
-            console.log(`  Quality: ${result.quality}`);
-            console.log(`  Status: ${testResult.passed ? '✓ PASS' : '✗ FAIL'}`);
-
-        } catch (error) {
-            console.error(`  ✗ ERROR: ${error.message}`);
-            testResults.push({
-                file: file.name,
-                category,
-                format: fileType,
-                error: error.message,
-                passed: false
-            });
-        }
-    }
-
-    // Print summary
-    console.log('\n=== TEST SUMMARY ===');
-    const passed = testResults.filter(r => r.passed).length;
-    const total = testResults.length;
-    console.log(`Passed: ${passed}/${total}`);
-
-    testResults.forEach(result => {
-        const status = result.passed ? '✓' : '✗';
-        const size = result.originalSize ? `(${(result.originalSize / 1024 / 1024).toFixed(2)} MB)` : '';
-        console.log(`${status} ${result.file} ${size} - ${result.category}`);
-    });
-
-    return testResults;
-}
-
-/**
- * Categorize image by size for testing purposes
- */
-function categorizeImage(file) {
-    const sizeMB = file.size / 1024 / 1024;
-
-    if (sizeMB < 1) {
-        return 'small (< 1MB)';
-    } else if (sizeMB < 3) {
-        return 'medium (1-3MB)';
-    } else {
-        return 'large (3-5MB+)';
-    }
-}
-
-/**
- * Evaluate if test result passes based on category and format
- */
-function evaluateTestResult(file, result, category) {
-    const compressedMB = result.compressedSize / 1024 / 1024;
-    const fileType = file.type || '';
-
-    // All formats should compress to under 1MB
-    if (result.compressedSize > 1024 * 1024) {
-        return false;
-    }
-
-    // Small images should maintain quality (quality >= 0.5)
-    if (category.includes('small') && result.quality < 0.5) {
-        return false;
-    }
-
-    // Medium and large should compress to 500KB-1MB
-    if ((category.includes('medium') || category.includes('large'))) {
-        if (compressedMB < 0.5 || compressedMB > 1) {
-            // Allow slight flexibility for very small images
-            if (result.originalSize < 1024 * 1024) {
-                return true; // Already under 1MB
-            }
-            return false;
-        }
-    }
-
-    // PNG should be converted to JPEG (compression ratio should be significant)
-    if (fileType.includes('png')) {
-        if (result.compressionRatio < 50) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-/**
- * Create a comprehensive test HTML file for manual testing
- * Tests various image sizes and formats
- * @returns {string} - HTML content for testing
- */
-export function getTestHTML() {
-    return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -695,53 +486,53 @@ export function getTestHTML() {
                 const originalUrl = URL.createObjectURL(result.originalFile);
                 const compressedUrl = URL.createObjectURL(result.compressedBlob);
 
-                html += \`
-                    <div class="test-result \${statusClass}">
+                html += `
+                    <div class="test-result ${statusClass}">
                         <h4>
-                            <span>\${result.fileName}</span>
-                            <span class="status \${statusClass}">\${statusText}</span>
+                            <span>${result.fileName}</span>
+                            <span class="status ${statusClass}">${statusText}</span>
                         </h4>
                         <div style="margin-bottom: 10px;">
-                            <span class="badge" style="background: #e0e0e0; color: #333;">\${result.category}</span>
+                            <span class="badge" style="background: #e0e0e0; color: #333;">${result.category}</span>
                         </div>
                         <div class="metrics">
                             <div class="metric">
                                 <span class="metric-label">Original Size:</span>
-                                <span class="metric-value">\${(result.originalSize / 1024 / 1024).toFixed(2)} MB</span>
+                                <span class="metric-value">${(result.originalSize / 1024 / 1024).toFixed(2)} MB</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Compressed Size:</span>
-                                <span class="metric-value">\${(result.compressedSize / 1024 / 1024).toFixed(2)} MB</span>
+                                <span class="metric-value">${(result.compressedSize / 1024 / 1024).toFixed(2)} MB</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Compression:</span>
-                                <span class="metric-value">\${result.compressionRatio.toFixed(1)}%</span>
+                                <span class="metric-value">${result.compressionRatio.toFixed(1)}%</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Quality:</span>
-                                <span class="metric-value">\${result.quality}</span>
+                                <span class="metric-value">${result.quality}</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Duration:</span>
-                                <span class="metric-value">\${result.duration}ms</span>
+                                <span class="metric-value">${result.duration}ms</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Target Met:</span>
-                                <span class="metric-value">\${result.compressedSize <= 1024 * 1024 ? '✓ Under 1MB' : '✗ Over 1MB'}</span>
+                                <span class="metric-value">${result.compressedSize <= 1024 * 1024 ? '✓ Under 1MB' : '✗ Over 1MB'}</span>
                             </div>
                         </div>
                         <div class="image-preview">
                             <div class="image-container">
                                 <h5>Original</h5>
-                                <img src="\${originalUrl}" alt="Original">
+                                <img src="${originalUrl}" alt="Original">
                             </div>
                             <div class="image-container">
                                 <h5>Compressed</h5>
-                                <img src="\${compressedUrl}" alt="Compressed">
+                                <img src="${compressedUrl}" alt="Compressed">
                             </div>
                         </div>
                     </div>
-                \`;
+                `;
             });
 
             resultsDiv.innerHTML = html;
@@ -749,5 +540,3 @@ export function getTestHTML() {
     </script>
 </body>
 </html>
-    `;
-}
