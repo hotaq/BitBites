@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { fetchMeals } from '../services/supabase';
 
-export default function MealGallery() {
+function MealGallery() {
     const [meals, setMeals] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -60,3 +60,5 @@ export default function MealGallery() {
         </div>
     );
 }
+
+export default memo(MealGallery);
