@@ -16,6 +16,37 @@ function App() {
   const [bonusWindow, setBonusWindow] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(null);
 
+  const fetchUsername = async (userId, email) => {
+    try {
+      // 1. Try to get name from profiles table
+      const { data } = await supabase.from('profiles').select('username').eq('id', userId).single();
+
+      if (data && data.username) {
+        setUsername(data.username);
+      } else {
+        // 2. Fallback to email username (e.g., 'john' from 'john@test.com')
+        const nameFromEmail = email.split('@')[0];
+        setUsername(nameFromEmail);
+      }
+    } catch {
+      // If profiles table doesn't exist, just use email
+      const nameFromEmail = email.split('@')[0];
+      setUsername(nameFromEmail);
+    }
+  };
+
+  const fetchTotalScore = async (userId) => {
+    const { data } = await supabase
+      .from('meals')
+      .select('score')
+      .eq('user_id', userId);
+
+    if (data) {
+      const total = data.reduce((acc, curr) => acc + (curr.score || 0), 0);
+      setTotalScore(total);
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -59,37 +90,6 @@ function App() {
 
     return () => clearInterval(interval);
   }, []);
-
-  const fetchUsername = async (userId, email) => {
-    try {
-      // 1. Try to get name from profiles table
-      const { data } = await supabase.from('profiles').select('username').eq('id', userId).single();
-
-      if (data && data.username) {
-        setUsername(data.username);
-      } else {
-        // 2. Fallback to email username (e.g., 'john' from 'john@test.com')
-        const nameFromEmail = email.split('@')[0];
-        setUsername(nameFromEmail);
-      }
-    } catch (error) {
-      // If profiles table doesn't exist, just use email
-      const nameFromEmail = email.split('@')[0];
-      setUsername(nameFromEmail);
-    }
-  };
-
-  const fetchTotalScore = async (userId) => {
-    const { data, error } = await supabase
-      .from('meals')
-      .select('score')
-      .eq('user_id', userId);
-
-    if (data) {
-      const total = data.reduce((acc, curr) => acc + (curr.score || 0), 0);
-      setTotalScore(total);
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();

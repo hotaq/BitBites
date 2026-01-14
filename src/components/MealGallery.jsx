@@ -7,14 +7,14 @@ export default function MealGallery() {
     const [loading, setLoading] = useState(true);
     const [containerWidth, setContainerWidth] = useState(window.innerWidth - 40);
 
-    const loadMeals = async () => {
-        setLoading(true);
-        const data = await fetchMeals();
-        setMeals(data);
-        setLoading(false);
-    };
-
     useEffect(() => {
+        const loadMeals = async () => {
+            setLoading(true);
+            const data = await fetchMeals();
+            setMeals(data);
+            setLoading(false);
+        };
+
         loadMeals();
 
         const handleResize = () => {

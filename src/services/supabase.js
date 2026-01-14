@@ -23,7 +23,7 @@ export async function uploadMealImage(file) {
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
             .from('meal-images')
             .upload(filePath, file);
 
@@ -56,7 +56,7 @@ export async function saveMeal(mealData) {
             // Auto-create/update profile with username from email (optional)
             const username = user.email.split('@')[0];
             await supabase.from('profiles').upsert({ id: userId, username: username });
-        } catch (error) {
+        } catch {
             // Profiles table might not exist yet, but that's okay
             console.log('Profile upsert skipped (table may not exist)');
         }
@@ -102,7 +102,7 @@ export async function fetchLeaderboard() {
     try {
         const { data: profileData } = await supabase.from('profiles').select('*');
         profiles = profileData || [];
-    } catch (error) {
+    } catch {
         console.log('Profiles table not available, using fallback names');
     }
 

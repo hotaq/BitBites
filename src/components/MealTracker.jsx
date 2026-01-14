@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import CameraUpload from './CameraUpload';
-import { analyzeMeal, calculateMealScore } from '../services/ai';
+import { calculateMealScore } from '../services/ai';
 import { uploadMealImage, saveMeal } from '../services/supabase';
 
 export default function MealTracker({ onMealSaved }) {

@@ -6,15 +6,23 @@ export default function Leaderboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        loadData();
-    }, []);
+        let isMounted = true;
 
-    const loadData = async () => {
-        setLoading(true);
-        const data = await fetchLeaderboard();
-        setPlayers(data);
-        setLoading(false);
-    };
+        const loadData = async () => {
+            setLoading(true);
+            const data = await fetchLeaderboard();
+            if (isMounted) {
+                setPlayers(data);
+                setLoading(false);
+            }
+        };
+
+        loadData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     if (loading) return null; // Or a spinner
 

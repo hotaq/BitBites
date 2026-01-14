@@ -7,15 +7,15 @@ export default function VirtualizedGallery() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const loadMeals = async () => {
+            setLoading(true);
+            const data = await fetchMeals();
+            setMeals(data);
+            setLoading(false);
+        };
+
         loadMeals();
     }, []);
-
-    const loadMeals = async () => {
-        setLoading(true);
-        const data = await fetchMeals();
-        setMeals(data);
-        setLoading(false);
-    };
 
     if (loading) {
         return <div style={{ textAlign: 'center', marginTop: '2rem' }}>Loading Gallery...</div>;
