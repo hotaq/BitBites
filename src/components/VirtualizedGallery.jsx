@@ -1,4 +1,4 @@
-import { FixedSizeGrid as Grid } from 'react-window';
+import { Grid } from 'react-window';
 import { fetchMeals } from '../services/supabase';
 import { useEffect, useState } from 'react';
 
