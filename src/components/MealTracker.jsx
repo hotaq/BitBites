@@ -1,5 +1,5 @@
 
-import { useState, memo } from 'react';
+import { useState, memo, useCallback } from 'react';
 import CameraUpload from './CameraUpload';
 import { analyzeMeal, calculateMealScore } from '../services/ai';
 import { uploadMealImage, saveMeal } from '../services/supabase';
@@ -12,20 +12,20 @@ function MealTracker({ onMealSaved }) {
     const [result, setResult] = useState(null);
 
     // Step 1: User takes photo of full meal
-    const handleBeforeImage = async (file) => {
+    const handleBeforeImage = useCallback(async (file) => {
         setBeforeImage(file);
         // Optional: Quick analysis of what the food is could go here
         setStep('eating');
-    };
+    }, []);
 
     // Step 2: User finishes eating and takes photo of aftermath
-    const handleAfterImage = (file) => {
+    const handleAfterImage = useCallback((file) => {
         setAfterImage(file);
         setStep('finish');
-    };
+    }, []);
 
     // Step 3: AI Analysis
-    const handleAnalysis = async () => {
+    const handleAnalysis = useCallback(async () => {
         if (!beforeImage || !afterImage) return;
 
         setLoading(true);
@@ -56,14 +56,14 @@ function MealTracker({ onMealSaved }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [beforeImage, afterImage, onMealSaved]);
 
-    const resetRotation = () => {
+    const resetRotation = useCallback(() => {
         setStep('start');
         setBeforeImage(null);
         setAfterImage(null);
         setResult(null);
-    };
+    }, []);
 
     return (
         <div className="meal-tracker">
