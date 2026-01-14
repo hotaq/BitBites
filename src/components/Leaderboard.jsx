@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
 import { fetchLeaderboard } from '../services/supabase';
 
-export default function Leaderboard() {
+function Leaderboard() {
     const [players, setPlayers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -33,3 +33,5 @@ export default function Leaderboard() {
         </div>
     );
 }
+
+export default memo(Leaderboard);
