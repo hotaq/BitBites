@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Write(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Edit(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Glob(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Grep(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Read(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/.auto-claude/specs/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Write(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/.auto-claude/specs/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Edit(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/worktrees/tasks/008-implement-virtualized-gallery-with-image-lazy-load/.auto-claude/specs/008-implement-virtualized-gallery-with-image-lazy-load/**)",
+      "Read(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/**)",
+      "Write(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/**)",
+      "Edit(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/**)",
+      "Glob(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/**)",
+      "Grep(/Users/chinnaphat/Desktop/cedt/BitBites/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__get-library-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}
