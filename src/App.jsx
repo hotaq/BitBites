@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MealTracker from './components/MealTracker';
 import MealGallery from './components/MealGallery';
 import Leaderboard from './components/Leaderboard';
@@ -91,7 +91,7 @@ function App() {
     }
   };
 
-  const handleLogin = async (e) => {
+  const handleLogin = useCallback(async (e) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
@@ -100,12 +100,12 @@ function App() {
     });
     if (error) alert(error.message);
     setLoading(false);
-  };
+  }, [email, password]);
 
   // Callback to update score immediately after a new meal is tracked
-  const handleMealSaved = () => {
+  const handleMealSaved = useCallback(() => {
     if (session) fetchTotalScore(session.user.id);
-  };
+  }, [session]);
 
   if (!session) {
     return (
