@@ -1,0 +1,753 @@
+/**
+ * Test file for image compression utility
+ * This file can be used to manually verify the compression functionality
+ *
+ * To test in a browser:
+ * 1. Import this file in your HTML or use it in browser console
+ * 2. Create an HTML file with a file input and call testCompression()
+ * 3. Select a 3-5MB image file
+ * 4. Check the console for results
+ */
+
+import { compressImage } from './imageCompression.js';
+
+/**
+ * Test compression with a file input
+ * Call this function from browser console after user selects a file
+ * @param {File} file - File from file input element
+ */
+export async function testCompression(file) {
+    console.log('=== Image Compression Test ===');
+    console.log('Original file:', {
+        name: file.name,
+        type: file.type,
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`,
+        sizeBytes: file.size
+    });
+
+    try {
+        const startTime = performance.now();
+
+        const result = await compressImage(file, {
+            maxWidth: 1920,
+            maxHeight: 1080,
+            initialQuality: 0.8,
+            targetSize: 1024 * 1024 // 1MB target
+        });
+
+        const endTime = performance.now();
+        const duration = (endTime - startTime).toFixed(2);
+
+        console.log('✓ Compression successful!');
+        console.log('Result:', {
+            compressedSize: `${(result.compressedSize / 1024 / 1024).toFixed(2)} MB`,
+            compressedSizeBytes: result.compressedSize,
+            compressionRatio: `${result.compressionRatio.toFixed(2)}%`,
+            quality: result.quality,
+            duration: `${duration}ms`
+        });
+
+        // Verify requirements
+        if (result.compressedSize <= 1024 * 1024) {
+            console.log('✓ PASS: Output file is under 1MB');
+        } else {
+            console.log('✗ FAIL: Output file exceeds 1MB');
+        }
+
+        if (result.compressionRatio >= 70) {
+            console.log('✓ PASS: Compression ratio is 70% or higher');
+        } else {
+            console.log('✗ FAIL: Compression ratio is below 70%');
+        }
+
+        // Return blob for visual inspection
+        console.log('Compressed blob:', result.blob);
+
+        return result;
+    } catch (error) {
+        console.error('✗ Compression failed:', error);
+        throw error;
+    }
+}
+
+/**
+ * Test that the compressImage function exists and is exported
+ */
+export function testFunctionExists() {
+    console.log('=== Function Existence Test ===');
+    console.log('compressImage function exists:', typeof compressImage === 'function');
+    console.log('compressImage is exported:', typeof compressImage !== 'undefined');
+
+    return typeof compressImage === 'function';
+}
+
+/**
+ * Comprehensive test suite for various image sizes and formats
+ * Tests small, medium, large images in JPEG, PNG, and HEIC formats
+ */
+export async function runComprehensiveTests(files) {
+    const testResults = [];
+
+    console.log('=== COMPREHENSIVE IMAGE COMPRESSION TEST SUITE ===\n');
+
+    for (const file of files) {
+        const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+        const fileType = file.type || 'unknown';
+        const category = categorizeImage(file);
+
+        console.log(`\n--- Testing: ${file.name} (${fileSizeMB} MB, ${fileType}) ---`);
+        console.log(`Category: ${category}`);
+
+        try {
+            const result = await compressImage(file);
+            const testResult = {
+                file: file.name,
+                originalSize: file.size,
+                compressedSize: result.compressedSize,
+                compressionRatio: result.compressionRatio,
+                category,
+                format: fileType,
+                quality: result.quality,
+                passed: evaluateTestResult(file, result, category)
+            };
+
+            testResults.push(testResult);
+
+            console.log('Results:');
+            console.log(`  Original: ${fileSizeMB} MB`);
+            console.log(`  Compressed: ${(result.compressedSize / 1024 / 1024).toFixed(2)} MB`);
+            console.log(`  Compression: ${result.compressionRatio.toFixed(2)}%`);
+            console.log(`  Quality: ${result.quality}`);
+            console.log(`  Status: ${testResult.passed ? '✓ PASS' : '✗ FAIL'}`);
+
+        } catch (error) {
+            console.error(`  ✗ ERROR: ${error.message}`);
+            testResults.push({
+                file: file.name,
+                category,
+                format: fileType,
+                error: error.message,
+                passed: false
+            });
+        }
+    }
+
+    // Print summary
+    console.log('\n=== TEST SUMMARY ===');
+    const passed = testResults.filter(r => r.passed).length;
+    const total = testResults.length;
+    console.log(`Passed: ${passed}/${total}`);
+
+    testResults.forEach(result => {
+        const status = result.passed ? '✓' : '✗';
+        const size = result.originalSize ? `(${(result.originalSize / 1024 / 1024).toFixed(2)} MB)` : '';
+        console.log(`${status} ${result.file} ${size} - ${result.category}`);
+    });
+
+    return testResults;
+}
+
+/**
+ * Categorize image by size for testing purposes
+ */
+function categorizeImage(file) {
+    const sizeMB = file.size / 1024 / 1024;
+
+    if (sizeMB < 1) {
+        return 'small (< 1MB)';
+    } else if (sizeMB < 3) {
+        return 'medium (1-3MB)';
+    } else {
+        return 'large (3-5MB+)';
+    }
+}
+
+/**
+ * Evaluate if test result passes based on category and format
+ */
+function evaluateTestResult(file, result, category) {
+    const compressedMB = result.compressedSize / 1024 / 1024;
+    const fileType = file.type || '';
+
+    // All formats should compress to under 1MB
+    if (result.compressedSize > 1024 * 1024) {
+        return false;
+    }
+
+    // Small images should maintain quality (quality >= 0.5)
+    if (category.includes('small') && result.quality < 0.5) {
+        return false;
+    }
+
+    // Medium and large should compress to 500KB-1MB
+    if ((category.includes('medium') || category.includes('large'))) {
+        if (compressedMB < 0.5 || compressedMB > 1) {
+            // Allow slight flexibility for very small images
+            if (result.originalSize < 1024 * 1024) {
+                return true; // Already under 1MB
+            }
+            return false;
+        }
+    }
+
+    // PNG should be converted to JPEG (compression ratio should be significant)
+    if (fileType.includes('png')) {
+        if (result.compressionRatio < 50) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Create a comprehensive test HTML file for manual testing
+ * Tests various image sizes and formats
+ * @returns {string} - HTML content for testing
+ */
+export function getTestHTML() {
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Compression Test Suite - Subtask 3-1</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .test-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-card h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .test-card .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-small { background: #e3f2fd; color: #1976d2; }
+        .badge-medium { background: #fff3e0; color: #f57c00; }
+        .badge-large { background: #fce4ec; color: #c2185b; }
+        .badge-jpeg { background: #e8f5e9; color: #388e3c; }
+        .badge-png { background: #f3e5f5; color: #7b1fa2; }
+        .badge-heic { background: #fff9c4; color: #f9a825; }
+        .file-input-wrapper {
+            margin: 15px 0;
+        }
+        .file-input-wrapper input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .file-input-wrapper input[type="file"]:hover {
+            border-color: #007bff;
+            background: #f0f8ff;
+        }
+        button {
+            width: 100%;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .results-section {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .results-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border-left: 4px solid #ddd;
+        }
+        .test-result.pass {
+            border-left-color: #4caf50;
+            background: #f1f8f4;
+        }
+        .test-result.fail {
+            border-left-color: #f44336;
+            background: #fef5f5;
+        }
+        .test-result h4 {
+            margin: 0 0 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .test-result .status {
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status.pass { background: #4caf50; color: white; }
+        .status.fail { background: #f44336; color: white; }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+        }
+        .metric-label {
+            color: #888;
+        }
+        .metric-value {
+            font-weight: 500;
+        }
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f0f8ff;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .summary-item {
+            text-align: center;
+        }
+        .summary-item .value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .summary-item .label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .image-preview {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .image-container {
+            text-align: center;
+        }
+        .image-container h5 {
+            margin: 0 0 8px 0;
+            font-size: 13px;
+            color: #666;
+        }
+        .image-container img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: 200px;
+        }
+        .run-all {
+            background: #28a745;
+            margin-bottom: 20px;
+            padding: 15px;
+            font-size: 16px;
+        }
+        .run-all:hover {
+            background: #218838;
+        }
+        .requirements {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .requirements h3 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .requirements ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .requirements li {
+            color: #856404;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Image Compression Test Suite</h1>
+    <p class="subtitle">Subtask 3-1: Test compression with various image sizes and formats</p>
+
+    <div class="requirements">
+        <h3>📋 Test Requirements</h3>
+        <ul>
+            <li>✓ Test with small image (&lt; 1MB): Should compress but maintain quality</li>
+            <li>✓ Test with medium image (1-3MB): Should compress to 500KB-1MB</li>
+            <li>✓ Test with large image (3-5MB): Should compress to 500KB-1MB</li>
+            <li>✓ Test with PNG: Should convert to JPEG for better compression</li>
+            <li>✓ Test with HEIC: Should handle gracefully (browser support varies)</li>
+            <li>✓ Verify all tests pass and images look good in gallery</li>
+        </ul>
+    </div>
+
+    <button class="run-all" onclick="runAllTests()">▶ Run All Tests</button>
+
+    <div class="test-grid">
+        <!-- Small JPEG Test -->
+        <div class="test-card">
+            <h3>
+                <span class="badge badge-small">Small</span>
+                <span class="badge badge-jpeg">JPEG</span>
+            </h3>
+            <p>Test with small image (&lt; 1MB)</p>
+            <div class="file-input-wrapper">
+                <input type="file" id="small-jpeg" accept="image/jpeg,image/jpg" data-category="small" data-format="jpeg">
+            </div>
+            <button onclick="runTest('small-jpeg')">Test</button>
+        </div>
+
+        <!-- Medium JPEG Test -->
+        <div class="test-card">
+            <h3>
+                <span class="badge badge-medium">Medium</span>
+                <span class="badge badge-jpeg">JPEG</span>
+            </h3>
+            <p>Test with medium image (1-3MB)</p>
+            <div class="file-input-wrapper">
+                <input type="file" id="medium-jpeg" accept="image/jpeg,image/jpg" data-category="medium" data-format="jpeg">
+            </div>
+            <button onclick="runTest('medium-jpeg')">Test</button>
+        </div>
+
+        <!-- Large JPEG Test -->
+        <div class="test-card">
+            <h3>
+                <span class="badge badge-large">Large</span>
+                <span class="badge badge-jpeg">JPEG</span>
+            </h3>
+            <p>Test with large image (3-5MB)</p>
+            <div class="file-input-wrapper">
+                <input type="file" id="large-jpeg" accept="image/jpeg,image/jpg" data-category="large" data-format="jpeg">
+            </div>
+            <button onclick="runTest('large-jpeg')">Test</button>
+        </div>
+
+        <!-- PNG Test -->
+        <div class="test-card">
+            <h3>
+                <span class="badge badge-medium">Medium</span>
+                <span class="badge badge-png">PNG</span>
+            </h3>
+            <p>Test PNG conversion to JPEG</p>
+            <div class="file-input-wrapper">
+                <input type="file" id="png-test" accept="image/png" data-category="png" data-format="png">
+            </div>
+            <button onclick="runTest('png-test')">Test</button>
+        </div>
+
+        <!-- HEIC Test -->
+        <div class="test-card">
+            <h3>
+                <span class="badge badge-medium">Medium</span>
+                <span class="badge badge-heic">HEIC</span>
+            </h3>
+            <p>Test HEIC handling (may vary)</p>
+            <div class="file-input-wrapper">
+                <input type="file" id="heic-test" accept="image/heic,image/heif" data-category="heic" data-format="heic">
+            </div>
+            <button onclick="runTest('heic-test')">Test</button>
+        </div>
+    </div>
+
+    <div class="results-section">
+        <h2>📊 Test Results</h2>
+        <div class="summary" id="summary" style="display: none;">
+            <div class="summary-item">
+                <div class="value" id="total-tests">0</div>
+                <div class="label">Total Tests</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="passed-tests">0</div>
+                <div class="label">Passed</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="failed-tests">0</div>
+                <div class="label">Failed</div>
+            </div>
+            <div class="summary-item">
+                <div class="value" id="avg-compression">0%</div>
+                <div class="label">Avg Compression</div>
+            </div>
+        </div>
+        <div id="results">
+            <p style="color: #999; text-align: center;">No tests run yet</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { compressImage } from './src/utils/imageCompression.js';
+
+        let testResults = [];
+
+        window.runTest = async function(inputId) {
+            const input = document.getElementById(inputId);
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+
+            if (!input.files[0]) {
+                alert('Please select a file first!');
+                return;
+            }
+
+            const file = input.files[0];
+            const category = input.dataset.category;
+            const format = input.dataset.format;
+            const button = input.parentElement.querySelector('button');
+
+            button.disabled = true;
+            button.textContent = 'Testing...';
+
+            try {
+                const startTime = performance.now();
+                const result = await compressImage(file);
+                const endTime = performance.now();
+                const duration = (endTime - startTime).toFixed(0);
+
+                const passed = evaluateResult(file, result, category);
+                const testResult = {
+                    fileName: file.name,
+                    category: format.toUpperCase() + ' - ' + category.toUpperCase(),
+                    originalSize: file.size,
+                    compressedSize: result.compressedSize,
+                    compressionRatio: result.compressionRatio,
+                    quality: result.quality,
+                    duration,
+                    passed,
+                    originalFile: file,
+                    compressedBlob: result.blob
+                };
+
+                testResults.push(testResult);
+                displayResults(testResults);
+
+                if (passed) {
+                    button.textContent = '✓ Passed';
+                    button.style.background = '#4caf50';
+                } else {
+                    button.textContent = '✗ Failed';
+                    button.style.background = '#f44336';
+                }
+
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+                button.textContent = '✗ Error';
+                button.style.background = '#f44336';
+            }
+
+            button.disabled = false;
+        };
+
+        window.runAllTests = async function() {
+            const inputs = document.querySelectorAll('input[type="file"]');
+            let hasFiles = false;
+
+            for (const input of inputs) {
+                if (input.files[0]) {
+                    hasFiles = true;
+                    break;
+                }
+            }
+
+            if (!hasFiles) {
+                alert('Please select at least one test image!');
+                return;
+            }
+
+            testResults = [];
+            const buttons = document.querySelectorAll('button:not(.run-all)');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+            });
+
+            for (const input of inputs) {
+                if (input.files[0]) {
+                    await window.runTest(input.id);
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            buttons.forEach(btn => {
+                btn.disabled = false;
+            });
+        };
+
+        function evaluateResult(file, result, category) {
+            const compressedMB = result.compressedSize / 1024 / 1024;
+            const originalMB = file.size / 1024 / 1024;
+
+            // Must be under 1MB
+            if (result.compressedSize > 1024 * 1024) {
+                return false;
+            }
+
+            // Small images should maintain quality
+            if (category === 'small' && originalMB < 1 && result.quality < 0.5) {
+                return false;
+            }
+
+            // Medium and large should compress to 500KB-1MB
+            if ((category === 'medium' || category === 'large') && originalMB >= 1) {
+                if (compressedMB < 0.5 || compressedMB > 1) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            const summaryDiv = document.getElementById('summary');
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<p style="color: #999; text-align: center;">No tests run yet</p>';
+                summaryDiv.style.display = 'none';
+                return;
+            }
+
+            // Update summary
+            const total = results.length;
+            const passed = results.filter(r => r.passed).length;
+            const failed = total - passed;
+            const avgCompression = results.reduce((sum, r) => sum + r.compressionRatio, 0) / total;
+
+            document.getElementById('total-tests').textContent = total;
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
+            document.getElementById('avg-compression').textContent = avgCompression.toFixed(1) + '%';
+            summaryDiv.style.display = 'flex';
+
+            // Display individual results
+            let html = '';
+            results.forEach((result, index) => {
+                const statusClass = result.passed ? 'pass' : 'fail';
+                const statusText = result.passed ? 'PASS ✓' : 'FAIL ✗';
+                const originalUrl = URL.createObjectURL(result.originalFile);
+                const compressedUrl = URL.createObjectURL(result.compressedBlob);
+
+                html += \`
+                    <div class="test-result \${statusClass}">
+                        <h4>
+                            <span>\${result.fileName}</span>
+                            <span class="status \${statusClass}">\${statusText}</span>
+                        </h4>
+                        <div style="margin-bottom: 10px;">
+                            <span class="badge" style="background: #e0e0e0; color: #333;">\${result.category}</span>
+                        </div>
+                        <div class="metrics">
+                            <div class="metric">
+                                <span class="metric-label">Original Size:</span>
+                                <span class="metric-value">\${(result.originalSize / 1024 / 1024).toFixed(2)} MB</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Compressed Size:</span>
+                                <span class="metric-value">\${(result.compressedSize / 1024 / 1024).toFixed(2)} MB</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Compression:</span>
+                                <span class="metric-value">\${result.compressionRatio.toFixed(1)}%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Quality:</span>
+                                <span class="metric-value">\${result.quality}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Duration:</span>
+                                <span class="metric-value">\${result.duration}ms</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Target Met:</span>
+                                <span class="metric-value">\${result.compressedSize <= 1024 * 1024 ? '✓ Under 1MB' : '✗ Over 1MB'}</span>
+                            </div>
+                        </div>
+                        <div class="image-preview">
+                            <div class="image-container">
+                                <h5>Original</h5>
+                                <img src="\${originalUrl}" alt="Original">
+                            </div>
+                            <div class="image-container">
+                                <h5>Compressed</h5>
+                                <img src="\${compressedUrl}" alt="Compressed">
+                            </div>
+                        </div>
+                    </div>
+                \`;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
+    `;
+}

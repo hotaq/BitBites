@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { compressImageSimple } from '../utils/imageCompression.js'
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 const genAI = new GoogleGenerativeAI(API_KEY)
@@ -118,6 +119,15 @@ export async function calculateMealScore(beforeImage, afterImage) {
 
 // Helper to convert File to Base64 for Gemini
 async function fileToGenerativePart(file) {
+    // Compress image before AI analysis to reduce payload size
+    const compressedBlob = await compressImageSimple(file, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        initialQuality: 0.8,
+        targetSize: 1024 * 1024 // 1MB target
+    });
+
+    // Convert compressed blob to base64
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -125,11 +135,11 @@ async function fileToGenerativePart(file) {
             resolve({
                 inlineData: {
                     data: base64Data,
-                    mimeType: file.type
+                    mimeType: 'image/jpeg'
                 }
             });
         };
         reader.onerror = reject;
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(compressedBlob);
     });
 }
