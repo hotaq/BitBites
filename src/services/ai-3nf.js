@@ -1,10 +1,19 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { compressImageSimple } from '../utils/imageCompression.js'
-import { isCurrentlyBonusTime } from './supabase.js'
+import { getActiveBonusWindow } from './supabase-3nf.js'
 
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 const genAI = new GoogleGenerativeAI(API_KEY)
 const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' })
+
+/**
+ * AI Service - 3NF Version
+ *
+ * Changes from original:
+ * - Returns raw_score and foodType (stored in DB)
+ * - Bonus detection moved to database layer
+ * - Final score calculated by database view, not application code
+ */
 
 /**
  * Analyzes a meal photo to identify content.
@@ -27,15 +36,15 @@ export async function analyzeMeal(imageFile) {
 /**
  * Compares before and after photos to calculate a RAW score.
  *
- * 3NF VERSION: Returns rawScore (0-100) and foodType only.
- * Database applies multipliers via views:
- * - food_types.score_multiplier (instant noodles ÷ 2)
- * - food_types.max_score_cap (snacks max 70)
- * - bonus_windows.multiplier (1.5x during bonus)
+ * IMPORTANT: This returns the RAW score (0-100) and food classification.
+ * The database will calculate the final_score using:
+ * - food_types.score_multiplier (for instant noodles)
+ * - food_types.max_score_cap (for snacks)
+ * - bonus_windows.multiplier (for bonus time)
  *
  * @param {File} beforeImage - The full meal image.
  * @param {File} afterImage - The empty plate image.
- * @returns {Promise<{rawScore: number, foodType: string, commentary: string, isBonusTime: boolean}>}
+ * @returns {Promise<{rawScore: number, foodType: string, commentary: string}>}
  */
 export async function calculateMealScore(beforeImage, afterImage) {
     try {
@@ -58,43 +67,43 @@ export async function calculateMealScore(beforeImage, afterImage) {
 
       3. If they ARE the same meal, estimate what percentage of the food was consumed.
 
-      4. Award a Score from 0 to 100 based on consumption percentage ONLY:
+      4. Award a Score from 0 to 100 based on consumption percentage ONLY (ignore food type penalties for now):
          - 90-100: Plate is clean or nearly clean (great job!)
          - 70-89: Most of the food is gone
          - 50-69: About half eaten
          - 30-49: Only a few bites taken
          - 0-29: Barely touched
 
-         IMPORTANT: Do NOT apply food type penalties or bonus multipliers.
-         Return the RAW consumption percentage (0-100).
-         The database will handle instant noodle penalties, snack caps, and bonus multipliers.
-
       5. Write a witty, romantic, retro-gaming style commentary (max 2 sentences).
          - For instant noodles, mention it's a "quick power-up"
          - For snacks, be playfully harsh: "Go eat real food!" "This gives you no XP!"
 
       Return JSON format: { "rawScore": NUMBER, "commentary": "STRING", "foodType": "main_course|instant_noodles|snack" }
+
+      IMPORTANT:
+      - Return "rawScore" as consumption percentage 0-100 (food type adjustments will be applied by database)
+      - Do NOT apply instant noodle penalties or bonus multipliers here
     `
 
         const result = await model.generateContent([prompt, beforeData, afterData])
         const responseText = result.response.text()
 
-        // Clean up markdown code blocks if present to parse JSON
+        // Clean up markdown code blocks if present
         const jsonStr = responseText.replace(/```json|```/g, '').trim()
         const parsedResult = JSON.parse(jsonStr)
 
-        // Ensure rawScore is valid 0-100
-        let rawScore = Math.max(0, Math.min(100, Math.round(parsedResult.rawScore || parsedResult.score || 0)))
+        // Ensure rawScore is a valid number 0-100
+        let rawScore = Math.max(0, Math.min(100, Math.round(parsedResult.rawScore || 0)))
 
-        // Check bonus time (for UI display only - database handles actual multiplier)
-        const { isBonus, window } = await isCurrentlyBonusTime()
+        // Check for active bonus window from database
+        const bonusWindow = await getActiveBonusWindow()
 
         return {
             rawScore: rawScore,
             foodType: parsedResult.foodType || 'other',
             commentary: parsedResult.commentary || 'Good meal!',
-            isBonusTime: isBonus,
-            bonusWindow: window
+            isBonusTime: !!bonusWindow,
+            bonusWindow: bonusWindow
         }
 
     } catch (error) {
@@ -105,27 +114,25 @@ export async function calculateMealScore(beforeImage, afterImage) {
 
 // Helper to convert File to Base64 for Gemini
 async function fileToGenerativePart(file) {
-    // Compress image before AI analysis to reduce payload size
     const compressedBlob = await compressImageSimple(file, {
         maxWidth: 1920,
         maxHeight: 1080,
         initialQuality: 0.8,
-        targetSize: 1024 * 1024 // 1MB target
-    });
+        targetSize: 1024 * 1024
+    })
 
-    // Convert compressed blob to base64
     return new Promise((resolve, reject) => {
-        const reader = new FileReader();
+        const reader = new FileReader()
         reader.onloadend = () => {
-            const base64Data = reader.result.split(',')[1];
+            const base64Data = reader.result.split(',')[1]
             resolve({
                 inlineData: {
                     data: base64Data,
                     mimeType: 'image/jpeg'
                 }
-            });
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(compressedBlob);
-    });
+            })
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(compressedBlob)
+    })
 }

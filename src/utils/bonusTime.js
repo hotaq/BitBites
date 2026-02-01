@@ -150,13 +150,27 @@ export function applyBonusToScore(score, isBonusTime) {
 
 /**
  * Get time remaining in current bonus window (in minutes)
+ * @param {Object} window - Bonus window from database (optional, uses localStorage if not provided)
  * @returns {number|null} - Minutes remaining or null if no active bonus
  */
-export function getTimeRemainingInBonus() {
-    const { isBonus, window } = isCurrentlyBonusTime();
+export function getTimeRemainingInBonus(window = null) {
+    const now = new Date();
+
+    // If window is provided (from database), use it directly
+    if (window) {
+        // Database format: window_end (ISO string) or end (Date object)
+        const endTime = window.window_end || window.end;
+        if (!endTime) return null;
+
+        const end = new Date(endTime);
+        const remaining = Math.ceil((end - now) / 1000 / 60);
+        return remaining > 0 ? remaining : 0;
+    }
+
+    // Fallback: check localStorage
+    const { isBonus, window: localWindow } = isCurrentlyBonusTime();
     if (!isBonus) return null;
 
-    const now = new Date();
-    const remaining = Math.ceil((window.end - now) / 1000 / 60);
+    const remaining = Math.ceil((localWindow.end - now) / 1000 / 60);
     return remaining;
 }

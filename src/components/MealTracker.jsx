@@ -30,24 +30,40 @@ function MealTracker({ onMealSaved }) {
 
         setLoading(true);
         try {
+            // Get raw score and food type from AI (database applies multipliers)
             const scoreData = await calculateMealScore(beforeImage, afterImage);
 
             // Upload Images
             const beforeUrl = await uploadMealImage(beforeImage);
             const afterUrl = await uploadMealImage(afterImage);
 
-            // Save to DB
+            // Save to DB with 3NF schema
             if (beforeUrl && afterUrl) {
-                await saveMeal({
-                    image_before: beforeUrl,
-                    image_after: afterUrl,
-                    score: scoreData.score,
+                const savedMeal = await saveMeal({
+                    image_before_url: beforeUrl,
+                    image_after_url: afterUrl,
+                    raw_score: scoreData.rawScore,
+                    foodType: scoreData.foodType,
                     analysis: scoreData.commentary
                 });
                 if (onMealSaved) onMealSaved();
+
+                // Use the final score calculated by database view
+                setResult({
+                    ...scoreData,
+                    finalScore: savedMeal.final_score,
+                    rawScore: savedMeal.raw_score,
+                    foodType: savedMeal.food_type,
+                    bonusMultiplier: savedMeal.bonus_multiplier
+                });
+            } else {
+                // Fallback if save failed but we still want to show result
+                setResult({
+                    ...scoreData,
+                    finalScore: scoreData.rawScore
+                });
             }
 
-            setResult(scoreData);
             setStep('result');
 
         } catch (error) {
@@ -118,7 +134,7 @@ function MealTracker({ onMealSaved }) {
                     <div className="step-content result-view">
                         <h2>💘 Meal Score</h2>
 
-                        {result.bonusApplied && (
+                        {result.isBonusTime && (
                             <div className="bonus-badge" style={{
                                 background: 'linear-gradient(135deg, #ffd700, #ff3366)',
                                 padding: '0.5rem 1rem',
@@ -127,18 +143,18 @@ function MealTracker({ onMealSaved }) {
                                 fontWeight: 'bold',
                                 animation: 'pulse 2s infinite'
                             }}>
-                                🎁 {result.bonusType} Applied!
+                                🎁 {result.bonusWindow?.label || 'Bonus Time'} Applied!
                             </div>
                         )}
 
                         <div className="score-display">
-                            <span className="score-number">{result.score}</span>
+                            <span className="score-number">{result.finalScore}</span>
                             <span className="score-max">/100</span>
                         </div>
 
-                        {result.bonusApplied && (
+                        {result.isBonusTime && (
                             <p style={{ fontSize: '0.9rem', color: 'var(--color-primary)', marginTop: '0.5rem' }}>
-                                Base Score: {result.originalScore} × 1.5 = {result.score} 🎉
+                                Base Score: {result.rawScore} × 1.5 = {result.finalScore} 🎉
                             </p>
                         )}
 

@@ -18,15 +18,11 @@ import {
     fetchLeaderboard as fetchLeaderboard3NF,
     fetchProfile,
     updateProfile,
-    isCurrentlyBonusTime,
-    // Tier system
-    checkTierUp,
-    getUserTierInfo,
-    fetchTierConfig
+    isCurrentlyBonusTime
 } from './supabase-3nf.js'
 
-// Re-export supabase client and tier functions
-export { supabase, uploadMealImage, checkTierUp, getUserTierInfo, fetchTierConfig }
+// Re-export supabase client
+export { supabase, uploadMealImage }
 
 /**
  * Save meal with backward-compatible API
@@ -81,21 +77,15 @@ export async function saveMeal(mealData) {
     // New format - pass through directly
     const result = await saveMeal3NF(mealData)
 
-    // Return with both legacy and new format fields
+    // Return in legacy format for backward compatibility
     return {
-        // Legacy fields for backward compatibility
         id: result.meal_id,
         user_id: result.user_id,
         image_before: result.image_before_url,
         image_after: result.image_after_url,
         score: result.final_score,
         analysis: result.analysis,
-        created_at: result.created_at,
-        // New 3NF fields (used by MealTracker.jsx)
-        final_score: result.final_score,
-        raw_score: result.raw_score,
-        food_type: result.food_type,
-        bonus_multiplier: result.bonus_multiplier
+        created_at: result.created_at
     }
 }
 
@@ -139,9 +129,19 @@ export async function fetchLeaderboard() {
 }
 
 /**
- * Re-export 3NF functions
+ * Check if currently in bonus time (backward compatible)
+ *
+ * Old format: { isBonus: boolean, window: { mealType, label, start, end } }
+ * New format: Same (no change needed)
  */
-export { fetchProfile, updateProfile, isCurrentlyBonusTime }
+export async function checkBonusTime() {
+    return isCurrentlyBonusTime()
+}
+
+/**
+ * Re-export profile functions (no API change)
+ */
+export { fetchProfile, updateProfile }
 
 /**
  * Migration helper: Check database schema version
